@@ -47,7 +47,12 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+DAC_HandleTypeDef hdac1;
+DMA_HandleTypeDef hdma_dac1_ch1;
+
 I2C_HandleTypeDef hi2c1;
+
+TIM_HandleTypeDef htim2;
 
 UART_HandleTypeDef huart1;
 
@@ -64,14 +69,51 @@ void Sensor_Read_with_Kalman(void);
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_USART1_UART_Init(void);
+static void MX_DAC1_Init(void);
+static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+//we chose counter period of 200, which gives us 600khz, because 120 Mhz/200=600kz (with 120 Mhz processor clock)
+#define SINE_TABLE_SIZE 400//600khz/400 = 1.5khz
+#define SINE_TABLE_SIZE2 500//600khz/500 =1.2khz
+#define SINE_TABLE_SIZE3 600//600khz/600 =1khz
+#define SINE_TABLE_SIZE4 600//300khz/600 =500 hz (here because counter period is modified to 400 rather than 200
+#define amplitude 170// 2/3 of 256 max amplitude from 8-bit config
+uint32_t sine_table[SINE_TABLE_SIZE];
+uint32_t sine_table2[SINE_TABLE_SIZE2];
+uint32_t sine_table3[SINE_TABLE_SIZE3];
+uint32_t sine_table4[SINE_TABLE_SIZE4];
+
+//function to fill needed arrays with samples of sine waves of different frequencies
+void GenerateSineTable(void) {
+	float32_t val=0;
+    for (int i = 0; i < SINE_TABLE_SIZE; i++) {
+    	val=(arm_sin_f32(2.0f * 3.141592653 * i / SINE_TABLE_SIZE) + 1.0f) * (amplitude / 2.0f);
+        sine_table[i] = (uint32_t) val;
+    }
+    val=0.0f;
+    for (int i = 0; i < SINE_TABLE_SIZE2; i++) {
+		val=(arm_sin_f32(2.0f * 3.141592653 * i / SINE_TABLE_SIZE2) + 1.0f) * (amplitude / 2.0f);
+		sine_table2[i] = (uint32_t) val;
+	}
+    val=0.0f;
+	for (int i = 0; i < SINE_TABLE_SIZE3; i++) {
+		val=(arm_sin_f32(2.0f * 3.141592653 * i / SINE_TABLE_SIZE3) + 1.0f) * (amplitude / 2.0f);
+		sine_table3[i] = (uint32_t) val;
+	}
+	val=0.0f;
+	for (int i = 0; i < SINE_TABLE_SIZE4; i++) {
+		val=(arm_sin_f32(2.0f * 3.141592653 * i / SINE_TABLE_SIZE4) + 1.0f) * (amplitude / 2.0f);
+		sine_table4[i] = (uint32_t) val;
+	}
+}
 //function to read measurements of 5 sensors and send it over UART
 void Sensor_Read_with_Kalman(void) {
 	char buffer[100];  // Buffer to store the formatted string
@@ -97,6 +139,24 @@ void Sensor_Read_with_Kalman(void) {
 
 
 	HAL_UART_Transmit(&huart1, (uint8_t*) "\r\n", 2, HAL_MAX_DELAY); // Newline for clarity
+}
+
+void processAcceleration() {
+    int16_t zAxisValue = smoothed_accelerometer_data[2]; // Read Z-axis value (from accelerometer)
+
+    // Logic for sound generation based on Z-axis value
+    if (zAxisValue < 900) {
+        // Below 900: Play Sound 1
+    	HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
+        HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, sine_table2, SINE_TABLE_SIZE2, DAC_ALIGN_8B_R);
+    } else if (zAxisValue >= 900 && zAxisValue <= 1100) {
+    	HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
+    	HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, sine_table3, SINE_TABLE_SIZE3, DAC_ALIGN_8B_R);
+    } else if (zAxisValue > 1100) {
+        // Above 1100: Play Sound 3
+    	HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
+    	HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, sine_table, SINE_TABLE_SIZE, DAC_ALIGN_8B_R);
+    }
 }
 /* USER CODE END 0 */
 
@@ -129,11 +189,19 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_I2C1_Init();
   MX_USART1_UART_Init();
+  MX_DAC1_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
   BSP_MAGNETO_Init();
   BSP_ACCELERO_Init();
+  GenerateSineTable();
+  HAL_DAC_Start(&hdac1, DAC_CHANNEL_1);
+
+  HAL_TIM_Base_Start(&htim2);
+  HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, (uint32_t*)sine_table, SINE_TABLE_SIZE, DAC_ALIGN_8B_R);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -144,6 +212,7 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 	  Sensor_Read_with_Kalman();
+	  processAcceleration();
 	  HAL_Delay(1000);
   }
   /* USER CODE END 3 */
@@ -200,6 +269,58 @@ void SystemClock_Config(void)
 }
 
 /**
+  * @brief DAC1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_DAC1_Init(void)
+{
+
+  /* USER CODE BEGIN DAC1_Init 0 */
+
+  /* USER CODE END DAC1_Init 0 */
+
+  DAC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN DAC1_Init 1 */
+
+  /* USER CODE END DAC1_Init 1 */
+
+  /** DAC Initialization
+  */
+  hdac1.Instance = DAC1;
+  if (HAL_DAC_Init(&hdac1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** DAC channel OUT1 config
+  */
+  sConfig.DAC_SampleAndHold = DAC_SAMPLEANDHOLD_DISABLE;
+  sConfig.DAC_Trigger = DAC_TRIGGER_T2_TRGO;
+  sConfig.DAC_HighFrequency = DAC_HIGH_FREQUENCY_INTERFACE_MODE_ABOVE_80MHZ;
+  sConfig.DAC_OutputBuffer = DAC_OUTPUTBUFFER_ENABLE;
+  sConfig.DAC_ConnectOnChipPeripheral = DAC_CHIPCONNECT_DISABLE;
+  sConfig.DAC_UserTrimming = DAC_TRIMMING_FACTORY;
+  if (HAL_DAC_ConfigChannel(&hdac1, &sConfig, DAC_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** DAC channel OUT2 config
+  */
+  sConfig.DAC_Trigger = DAC_TRIGGER_NONE;
+  if (HAL_DAC_ConfigChannel(&hdac1, &sConfig, DAC_CHANNEL_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN DAC1_Init 2 */
+
+  /* USER CODE END DAC1_Init 2 */
+
+}
+
+/**
   * @brief I2C1 Initialization Function
   * @param None
   * @retval None
@@ -244,6 +365,51 @@ static void MX_I2C1_Init(void)
   /* USER CODE BEGIN I2C1_Init 2 */
 
   /* USER CODE END I2C1_Init 2 */
+
+}
+
+/**
+  * @brief TIM2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM2_Init(void)
+{
+
+  /* USER CODE BEGIN TIM2_Init 0 */
+
+  /* USER CODE END TIM2_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM2_Init 1 */
+
+  /* USER CODE END TIM2_Init 1 */
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 0;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 200;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM2_Init 2 */
+
+  /* USER CODE END TIM2_Init 2 */
 
 }
 
@@ -296,6 +462,23 @@ static void MX_USART1_UART_Init(void)
 }
 
 /**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMAMUX1_CLK_ENABLE();
+  __HAL_RCC_DMA1_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA1_Channel3_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel3_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel3_IRQn);
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -306,6 +489,7 @@ static void MX_GPIO_Init(void)
 /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
