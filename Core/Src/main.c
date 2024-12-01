@@ -29,6 +29,11 @@
 #include "stm32l4s5i_iot01_accelero.h" // LSM6DSL (accelerometer/gyroscope)
 #include <string.h>
 #include <stdio.h>
+
+#define BOARD_SIZE 10  // 10x10 board
+#define CAR_SYMBOL "H"
+#define EMPTY_CELL '.'
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -72,6 +77,47 @@ static void MX_USART1_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+// Function to map accelerometer coordinates to the board's grid
+void MapCoordinatesToBoard(int x, int y, char board[BOARD_SIZE][BOARD_SIZE]) {
+    // Clear the board
+    for (int i = 0; i < BOARD_SIZE; i++) {
+        for (int j = 0; j < BOARD_SIZE; j++) {
+            board[i][j] = EMPTY_CELL;
+        }
+    }
+
+    // Scale and map coordinates to the board
+    int mappedX = BOARD_SIZE / 2 + (x / 100);  // Adjust scaling factor (/100) as needed
+    int mappedY = BOARD_SIZE / 2 - (y / 100);  // Flip Y-axis
+
+    // Clamp the car position within board boundaries
+    if (mappedX < 0) mappedX = 0;
+    if (mappedX >= BOARD_SIZE) mappedX = BOARD_SIZE - 1;
+    if (mappedY < 0) mappedY = 0;
+    if (mappedY >= BOARD_SIZE) mappedY = BOARD_SIZE - 1;
+
+    // Place the car on the board
+    board[mappedY][mappedX] = CAR_SYMBOL;
+}
+
+// Function to transmit the 2D board to UART
+void PrintBoardToUART(char board[BOARD_SIZE][BOARD_SIZE]) {
+    char buffer[200];  // Buffer to store the board as a string
+    int index = 0;
+
+    // Convert the board to a string representation
+    for (int i = 0; i < BOARD_SIZE; i++) {
+        for (int j = 0; j < BOARD_SIZE; j++) {
+            buffer[index++] = board[i][j];
+        }
+        buffer[index++] = '\r';  // Carriage return
+        buffer[index++] = '\n';  // New line
+    }
+    buffer[index] = '\0';  // Null-terminate the string
+
+    // Transmit the board over UART
+    HAL_UART_Transmit(&huart1, (uint8_t*)buffer, strlen(buffer), HAL_MAX_DELAY);
+}
 //function to read measurements of 5 sensors and send it over UART
 void Sensor_Read_with_Kalman(void) {
 	char buffer[100];  // Buffer to store the formatted string
@@ -138,13 +184,20 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
-  {
-    /* USER CODE END WHILE */
+  char board[BOARD_SIZE][BOARD_SIZE];  // 2D board
 
-    /* USER CODE BEGIN 3 */
-	  Sensor_Read_with_Kalman();
-	  HAL_Delay(1000);
+  while (1) {
+      // Read accelerometer data and smooth it
+      Sensor_Read_with_Kalman();
+
+      // Map smoothed accelerometer data to the board
+      MapCoordinatesToBoard(smoothed_accelerometer_data[0], smoothed_accelerometer_data[1], board);
+
+      // Print the updated board to UART
+      PrintBoardToUART(board);
+
+      // Add a 1-second delay for a 1 fps refresh rate
+      HAL_Delay(300);
   }
   /* USER CODE END 3 */
 }

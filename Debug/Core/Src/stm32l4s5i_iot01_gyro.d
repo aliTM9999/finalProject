@@ -29,9 +29,9 @@ Core/Src/stm32l4s5i_iot01_gyro.o: ../Core/Src/stm32l4s5i_iot01_gyro.c \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_pwr_ex.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_uart.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_uart_ex.h \
- C:/Users/Ali/STM32CubeIDE/workspace_1.16.0/finalProject/Drivers/Components/lsm6dsl/lsm6dsl.h \
- C:/Users/Ali/STM32CubeIDE/workspace_1.16.0/finalProject/Drivers/Components/lsm6dsl/../Common/accelero.h \
- C:/Users/Ali/STM32CubeIDE/workspace_1.16.0/finalProject/Drivers/Components/lsm6dsl/../Common/gyro.h
+ C:/Users/Imad\ Baida/Documents/finalProject/Drivers/Components/lsm6dsl/lsm6dsl.h \
+ C:/Users/Imad\ Baida/Documents/finalProject/Drivers/Components/lsm6dsl/../Common/accelero.h \
+ C:/Users/Imad\ Baida/Documents/finalProject/Drivers/Components/lsm6dsl/../Common/gyro.h
 ../Core/Inc/stm32l4s5i_iot01_gyro.h:
 ../Core/Inc/stm32l4s5i_iot01.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal.h:
@@ -63,6 +63,6 @@ Core/Src/stm32l4s5i_iot01_gyro.o: ../Core/Src/stm32l4s5i_iot01_gyro.c \
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_pwr_ex.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_uart.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_uart_ex.h:
-C:/Users/Ali/STM32CubeIDE/workspace_1.16.0/finalProject/Drivers/Components/lsm6dsl/lsm6dsl.h:
-C:/Users/Ali/STM32CubeIDE/workspace_1.16.0/finalProject/Drivers/Components/lsm6dsl/../Common/accelero.h:
-C:/Users/Ali/STM32CubeIDE/workspace_1.16.0/finalProject/Drivers/Components/lsm6dsl/../Common/gyro.h:
+C:/Users/Imad\ Baida/Documents/finalProject/Drivers/Components/lsm6dsl/lsm6dsl.h:
+C:/Users/Imad\ Baida/Documents/finalProject/Drivers/Components/lsm6dsl/../Common/accelero.h:
+C:/Users/Imad\ Baida/Documents/finalProject/Drivers/Components/lsm6dsl/../Common/gyro.h:

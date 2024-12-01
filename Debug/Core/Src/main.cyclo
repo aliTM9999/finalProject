@@ -1,7 +1,9 @@
-../Core/Src/main.c:76:6:Sensor_Read_with_Kalman	1
-../Core/Src/main.c:107:5:main	1
-../Core/Src/main.c:156:6:SystemClock_Config	4
-../Core/Src/main.c:207:13:MX_I2C1_Init	4
-../Core/Src/main.c:255:13:MX_USART1_UART_Init	5
-../Core/Src/main.c:303:13:MX_GPIO_Init	1
-../Core/Src/main.c:323:6:Error_Handler	1
+../Core/Src/main.c:81:6:MapCoordinatesToBoard	7
+../Core/Src/main.c:104:6:PrintBoardToUART	3
+../Core/Src/main.c:122:6:Sensor_Read_with_Kalman	1
+../Core/Src/main.c:153:5:main	1
+../Core/Src/main.c:209:6:SystemClock_Config	4
+../Core/Src/main.c:260:13:MX_I2C1_Init	4
+../Core/Src/main.c:308:13:MX_USART1_UART_Init	5
+../Core/Src/main.c:356:13:MX_GPIO_Init	1
+../Core/Src/main.c:376:6:Error_Handler	1

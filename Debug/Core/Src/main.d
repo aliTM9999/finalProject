@@ -31,12 +31,12 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Core/Inc/kalman_c.h ../Core/Inc/arm_math.h \
  ../Drivers/CMSIS/Include/cmsis_compiler.h \
  ../Core/Inc/stm32l4s5i_iot01_magneto.h ../Core/Inc/stm32l4s5i_iot01.h \
- C:/Users/Ali/STM32CubeIDE/workspace_1.16.0/finalProject/Drivers/Components/lis3mdl/lis3mdl.h \
- C:/Users/Ali/STM32CubeIDE/workspace_1.16.0/finalProject/Drivers/Components/lis3mdl/../Common/magneto.h \
+ C:/Users/Imad\ Baida/Documents/finalProject/Drivers/Components/lis3mdl/lis3mdl.h \
+ C:/Users/Imad\ Baida/Documents/finalProject/Drivers/Components/lis3mdl/../Common/magneto.h \
  ../Core/Inc/stm32l4s5i_iot01_accelero.h \
- C:/Users/Ali/STM32CubeIDE/workspace_1.16.0/finalProject/Drivers/Components/lsm6dsl/lsm6dsl.h \
- C:/Users/Ali/STM32CubeIDE/workspace_1.16.0/finalProject/Drivers/Components/lsm6dsl/../Common/accelero.h \
- C:/Users/Ali/STM32CubeIDE/workspace_1.16.0/finalProject/Drivers/Components/lsm6dsl/../Common/gyro.h
+ C:/Users/Imad\ Baida/Documents/finalProject/Drivers/Components/lsm6dsl/lsm6dsl.h \
+ C:/Users/Imad\ Baida/Documents/finalProject/Drivers/Components/lsm6dsl/../Common/accelero.h \
+ C:/Users/Imad\ Baida/Documents/finalProject/Drivers/Components/lsm6dsl/../Common/gyro.h
 ../Core/Inc/main.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal.h:
 ../Core/Inc/stm32l4xx_hal_conf.h:
@@ -72,9 +72,9 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../Drivers/CMSIS/Include/cmsis_compiler.h:
 ../Core/Inc/stm32l4s5i_iot01_magneto.h:
 ../Core/Inc/stm32l4s5i_iot01.h:
-C:/Users/Ali/STM32CubeIDE/workspace_1.16.0/finalProject/Drivers/Components/lis3mdl/lis3mdl.h:
-C:/Users/Ali/STM32CubeIDE/workspace_1.16.0/finalProject/Drivers/Components/lis3mdl/../Common/magneto.h:
+C:/Users/Imad\ Baida/Documents/finalProject/Drivers/Components/lis3mdl/lis3mdl.h:
+C:/Users/Imad\ Baida/Documents/finalProject/Drivers/Components/lis3mdl/../Common/magneto.h:
 ../Core/Inc/stm32l4s5i_iot01_accelero.h:
-C:/Users/Ali/STM32CubeIDE/workspace_1.16.0/finalProject/Drivers/Components/lsm6dsl/lsm6dsl.h:
-C:/Users/Ali/STM32CubeIDE/workspace_1.16.0/finalProject/Drivers/Components/lsm6dsl/../Common/accelero.h:
-C:/Users/Ali/STM32CubeIDE/workspace_1.16.0/finalProject/Drivers/Components/lsm6dsl/../Common/gyro.h:
+C:/Users/Imad\ Baida/Documents/finalProject/Drivers/Components/lsm6dsl/lsm6dsl.h:
+C:/Users/Imad\ Baida/Documents/finalProject/Drivers/Components/lsm6dsl/../Common/accelero.h:
+C:/Users/Imad\ Baida/Documents/finalProject/Drivers/Components/lsm6dsl/../Common/gyro.h:
