@@ -29,6 +29,8 @@
 #include "stm32l4s5i_iot01_accelero.h" // LSM6DSL (accelerometer/gyroscope)
 #include <string.h>
 #include <stdio.h>
+
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -57,6 +59,7 @@ TIM_HandleTypeDef htim2;
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
+
 int16_t magnetometer_data[3];
 int16_t accelerometer_data[3];
 int16_t smoothed_accelerometer_data[3];
@@ -64,6 +67,19 @@ kalman_state stateX = {0.1, 0.1, 0.1, 5, 0};
 kalman_state stateY = {0.1, 0.1, 0.1, 5, 0};
 kalman_state stateZ = {0.1, 0.1, 0.1, 5, 0};
 void Sensor_Read_with_Kalman(void);
+const int BOARD_SIZE = 10;      // 10x10 board
+const char CAR_SYMBOL = 'H';    // Car symbol
+const char EMPTY_CELL = '.';    // Empty cell symbol
+#define MAX_OBSTACLES 3      // Maximum number of obstacles
+#define OBSTACLE_SYMBOL 'X'  // Symbol for obstacles
+
+typedef struct {
+    int x;  // X position
+    int y;  // Y position
+} Obstacle;
+
+Obstacle obstacles[MAX_OBSTACLES];
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -131,7 +147,7 @@ void Sensor_Read_with_Kalman(void) {
 		accelerometer_data[2]);
 	HAL_UART_Transmit(&huart1, (uint8_t*) buffer, strlen(buffer),
 			HAL_MAX_DELAY);
-	sprintf(buffer, " Smoothed Accelerometer: X=%d, Y=%d, Z=%d\r\n",
+	sprintf(buffer, "Smoothed Accelerometer: X=%d, Y=%d, Z=%d\r\n",
 		smoothed_accelerometer_data[0], smoothed_accelerometer_data[1],
 		smoothed_accelerometer_data[2]);
 	HAL_UART_Transmit(&huart1, (uint8_t*) buffer, strlen(buffer),
@@ -142,21 +158,122 @@ void Sensor_Read_with_Kalman(void) {
 }
 
 void processAcceleration() {
-    int16_t zAxisValue = smoothed_accelerometer_data[2]; // Read Z-axis value (from accelerometer)
+    int16_t xAxisValue = smoothed_accelerometer_data[0]; // Read X-axis value
+    int16_t yAxisValue = smoothed_accelerometer_data[1]; // Read Y-axis value
 
-    // Logic for sound generation based on Z-axis value
-    if (zAxisValue < 900) {
-        // Below 900: Play Sound 1
-    	HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
+    // Calculate the total acceleration (resultant of X and Y)
+    float totalAcceleration = sqrt((float)(xAxisValue * xAxisValue) + (float)(yAxisValue * yAxisValue));
+
+    // Logic for sound generation based on total acceleration
+    if (totalAcceleration < 500) {
+        // Low acceleration: Play Sound 1
+        HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
+        HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, sine_table, SINE_TABLE_SIZE, DAC_ALIGN_8B_R);
+    } else if (totalAcceleration >= 300 && totalAcceleration < 600) {
+        // Moderate acceleration: Play Sound 2
+        HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
         HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, sine_table2, SINE_TABLE_SIZE2, DAC_ALIGN_8B_R);
-    } else if (zAxisValue >= 900 && zAxisValue <= 1100) {
-    	HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
-    	HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, sine_table3, SINE_TABLE_SIZE3, DAC_ALIGN_8B_R);
-    } else if (zAxisValue > 1100) {
-        // Above 1100: Play Sound 3
-    	HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
-    	HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, sine_table, SINE_TABLE_SIZE, DAC_ALIGN_8B_R);
+    } else if (totalAcceleration >= 600) {
+        // High acceleration: Play Sound 3
+        HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
+        HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, sine_table3, SINE_TABLE_SIZE3, DAC_ALIGN_8B_R);
     }
+}
+//// Function to map accelerometer coordinates to the board's grid
+//void MapCoordinatesToBoard(int x, int y, char board[BOARD_SIZE][BOARD_SIZE]) {
+//    // Clear the board
+//    for (int i = 0; i < BOARD_SIZE; i++) {
+//        for (int j = 0; j < BOARD_SIZE; j++) {
+//            board[i][j] = EMPTY_CELL;
+//        }
+//    }
+//    // Scale and map coordinates to the board
+//    int mappedX = BOARD_SIZE / 2 + (x / 100);  // Adjust scaling factor (/100) as needed
+//    int mappedY = BOARD_SIZE / 2 - (y / 100);  // Flip Y-axis
+//    // Clamp the car position within board boundaries
+//    if (mappedX < 0) mappedX = 0;
+//    if (mappedX >= BOARD_SIZE) mappedX = BOARD_SIZE - 1;
+//    if (mappedY < 0) mappedY = 0;
+//    if (mappedY >= BOARD_SIZE) mappedY = BOARD_SIZE - 1;
+//    // Place the car on the board
+//    board[mappedY][mappedX] = CAR_SYMBOL;
+//}
+
+// Map accelerometer coordinates to board
+void MapCoordinatesToBoard(int x, int y, char board[BOARD_SIZE][BOARD_SIZE], int *carX, int *carY) {
+    // Clear the board
+    for (int i = 0; i < BOARD_SIZE; i++) {
+        for (int j = 0; j < BOARD_SIZE; j++) {
+            board[i][j] = EMPTY_CELL;
+        }
+    }
+
+    // Map coordinates to board
+    *carX = BOARD_SIZE / 2 + (x / 100);
+    *carY = BOARD_SIZE / 2 - (y / 100);
+
+    // Clamp position to board boundaries
+    if (*carX < 0) *carX = 0;
+    if (*carX >= BOARD_SIZE) *carX = BOARD_SIZE - 1;
+    if (*carY < 0) *carY = 0;
+    if (*carY >= BOARD_SIZE) *carY = BOARD_SIZE - 1;
+
+    // Place car on the board
+    board[*carY][*carX] = CAR_SYMBOL;
+}
+// Function to transmit the 2D board to UART
+void PrintBoardToUART(char board[BOARD_SIZE][BOARD_SIZE]) {
+    char buffer[200];  // Buffer to store the board as a string
+    int index = 0;
+    // Convert the board to a string representation
+    for (int i = 0; i < BOARD_SIZE; i++) {
+        for (int j = 0; j < BOARD_SIZE; j++) {
+            buffer[index++] = board[i][j];
+        }
+        buffer[index++] = '\r';  // Carriage return
+        buffer[index++] = '\n';  // New line
+    }
+    buffer[index] = '\0';  // Null-terminate the string
+    // Transmit the board over UART
+    HAL_UART_Transmit(&huart1, (uint8_t*)buffer, strlen(buffer), HAL_MAX_DELAY);
+}
+
+// Initialize obstacles at random positions
+void InitializeObstacles(void) {
+    for (int i = 0; i < MAX_OBSTACLES; i++) {
+        obstacles[i].x = rand() % BOARD_SIZE; // Random X position
+        obstacles[i].y = rand() % BOARD_SIZE; // Random Y position
+    }
+}
+
+// Move obstacles down and respawn at random X positions when out of bounds
+void MoveObstacles(char board[BOARD_SIZE][BOARD_SIZE]) {
+    for (int i = 0; i < MAX_OBSTACLES; i++) {
+        // Clear current position
+        board[obstacles[i].y][obstacles[i].x] = EMPTY_CELL;
+
+        // Move obstacle down
+        obstacles[i].y++;
+
+        // If obstacle goes out of bounds, reset to the top
+        if (obstacles[i].y >= BOARD_SIZE) {
+            obstacles[i].y = 0;                  // Reset to top
+            obstacles[i].x = rand() % BOARD_SIZE; // Randomize X position
+        }
+
+        // Place obstacle in the new position
+        board[obstacles[i].y][obstacles[i].x] = OBSTACLE_SYMBOL;
+    }
+}
+
+// Check for collisions between car and obstacles
+int CheckCollision(int carX, int carY) {
+    for (int i = 0; i < MAX_OBSTACLES; i++) {
+        if (obstacles[i].x == carX && obstacles[i].y == carY) {
+            return 1; // Collision detected
+        }
+    }
+    return 0; // No collision
 }
 /* USER CODE END 0 */
 
@@ -206,14 +323,43 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  char board[BOARD_SIZE][BOARD_SIZE];  // 2D board
+  int carX, carY;
+  int prevCarX = -1, prevCarY = -1;
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  Sensor_Read_with_Kalman();
-	  processAcceleration();
-	  HAL_Delay(1000);
+	  // Read accelerometer data and update smoothed values
+	      Sensor_Read_with_Kalman();
+
+	      // Map car position to board
+	      MapCoordinatesToBoard(smoothed_accelerometer_data[0], smoothed_accelerometer_data[1], board, &carX, &carY);
+
+	      // Play sound if the car moves
+	          if (carX != prevCarX || carY != prevCarY) {
+	              processAcceleration(); // Trigger sound
+	          } else {
+	              HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1); // Stop sound
+	          }
+
+	          // Update previous position
+	          prevCarX = carX;
+	          prevCarY = carY;
+	      // Move obstacles and place on board
+	      MoveObstacles(board);
+
+	      // Check for collisions
+	      if (CheckCollision(carX, carY)) {
+	          HAL_UART_Transmit(&huart1, (uint8_t *)"Collision Detected!\r\n", 22, HAL_MAX_DELAY);
+	          break; // Exit the game
+	      }
+
+	      // Print updated board to UART
+	      PrintBoardToUART(board);
+//	  processAcceleration();
+	  HAL_Delay(500);
   }
   /* USER CODE END 3 */
 }
